@@ -64,8 +64,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HarmonyStarter.cs" />
     <Compile Include="Outpost_AnimalTraining.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="AnimalOutpostsUtility.cs" />
     <Compile Include="WITab_Outpost_AnimalTraining.cs" />
   </ItemGroup>
   <ItemGroup>

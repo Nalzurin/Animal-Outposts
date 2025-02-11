@@ -26,8 +26,19 @@ namespace AnimalOutposts
         {
             base.PostMake();
             ticksToNextTrain = intervalBetweenTraining;
+            foreach (Pawn p in GetAnimals())
+            {
+                AnimalOutpostsUtility.SetWantedTrainingAll(p);
+
+            }
         }
 
+        public override void PostAdd()
+        {
+            //Log.Message("test");
+            base.PostAdd();
+
+        }
         public override void Tick()
         {
             base.Tick();
@@ -51,7 +62,7 @@ namespace AnimalOutposts
             {
                 if (animals.Count() == 0)
                 {
-                    Log.Message("Animals empty");
+                    //Log.Message("Animals empty");
                     break;
                 }
                 Pawn animal;
@@ -74,7 +85,7 @@ namespace AnimalOutposts
                     i--;
                     continue;
                 }
-                Log.Message($"Training {animal.Label}'s {def.label}");
+                //Log.Message($"Training {animal.Label}'s {def.label}");
                 animal.training.Train(def, null);
 
             }
@@ -90,7 +101,7 @@ namespace AnimalOutposts
                 StringBuilder sb = new StringBuilder("AnimalOutposts.WillDeliverTrainedAnimals".Translate(TimeTillProduction));
                 foreach (Pawn p in ProducedThings())
                 {
-                    sb.Append($"- {p.LabelCap}");
+                    sb.Append($"\n- {p.LabelCap}");
                 }
                 return sb.ToString();
             }
@@ -111,10 +122,10 @@ namespace AnimalOutposts
         }
         public override IEnumerable<Thing> ProducedThings()
         {
-            foreach (var item in GetTrainedAnimals())
+           /* foreach (var item in GetTrainedAnimals())
             {
                 Log.Message(item.Label);
-            }
+            }*/
             return GetTrainedAnimals();
         }
         public override IEnumerable<Gizmo> GetGizmos()
