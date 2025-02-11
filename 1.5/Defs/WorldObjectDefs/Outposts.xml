@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <WorldObjectDef ParentName="OutpostBase">
+    <defName>Outpost_AnimalTraining</defName>
+    <label>animal training outpost</label>
+    <description>Places a temporary, autonomously-led camp that specializes in training animals. Once an animal is fully trained, a delivery with the animal will be made to the faction's primary colony.</description>
+    <expandingIconTexture>WorldObjects/AnimalTrainingOutpost</expandingIconTexture>
+    <worldObjectClass>AnimalOutposts.Outpost_AnimalTraining</worldObjectClass>
+    <inspectorTabs>
+      <li>AnimalOutposts.WITab_Outpost_AnimalTraining</li>
+    </inspectorTabs>
+    <modExtensions>
+      <li Class="Outposts.OutpostExtension_Choose">
+        <RequiredSkills>
+          <Animals>8</Animals>
+        </RequiredSkills>
+        <TicksPerProduction>900000</TicksPerProduction>
+        <TicksToSetUp>120000</TicksToSetUp>
+        <ProvidedFood>MealFine_Veg</ProvidedFood>
+        <DisplaySkills>
+          <li>Animals</li>
+        </DisplaySkills>
+        <ChooseLabel>Add animal</ChooseLabel>
+        <ChooseDesc>Transfer an animal to a ranch for permament handling</ChooseDesc>
+      </li>
+      <li Class="KCSG.CustomGenOption">
+        <fullClear>true</fullClear>
+      </li>
+    </modExtensions>
+  </WorldObjectDef>
+
+</Defs>

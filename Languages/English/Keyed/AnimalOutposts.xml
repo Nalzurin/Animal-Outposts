@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<LanguageData>
+  <AnimalOutposts.WillDeliverTrainedAnimals>Will deliver the following animals in {0}</AnimalOutposts.WillDeliverTrainedAnimals>
+  <AnimalOutposts.NoTrainedAnimalsToDeliver>No sufficiently trained animals to deliver</AnimalOutposts.NoTrainedAnimalsToDeliver>
+  <Outposts.Settings.TrainingInterval>Animal Training Interval</Outposts.Settings.TrainingInterval>
+  <Outposts.Settings.SkillAmountPerAnimal>Animal skill required to train 1 animal (e.g. with 24 total skill, train 3 animals per interval)</Outposts.Settings.SkillAmountPerAnimal>
+</LanguageData>
