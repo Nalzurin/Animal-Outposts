@@ -206,7 +206,8 @@ namespace AnimalOutposts
             base.Tick();
             if (Packing && !animalBreedingPairs.Empty())
             {
-                foreach (AnimalBreedingPair pair in animalBreedingPairs)
+                List<AnimalBreedingPair> local = new List<AnimalBreedingPair>(animalBreedingPairs);
+                foreach (AnimalBreedingPair pair in local)
                 {
                     RemovePair(pair);
                 }
@@ -478,14 +479,14 @@ namespace AnimalOutposts
                 {
                     yield return new FloatMenuOption(raceType.LabelCap, delegate
                     {
-                        AddPair(list.Where(p => p.def == raceType && p.gender == Gender.Female).RandomElement(), list.Where(p => p.def == raceType && p.gender == Gender.Male).RandomElement());
+                        AddPair(list.Where(p => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex).RandomElement(), list.Where(p => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex).RandomElement());
                     });
                 }
                 if ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType))
                 {
                     yield return new FloatMenuOption(raceType.LabelCap, delegate
                     {
-                        AddPair(list.Where(p => p.def == raceType).RandomElement());
+                        AddPair(list.Where(p => p.def == raceType && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex).RandomElement());
                     });
                 }
             }
@@ -495,7 +496,7 @@ namespace AnimalOutposts
             List<Pawn> list = pawns.Where((Pawn p) => p.IsNonMutantAnimal).ToList();
             foreach (ThingDef raceType in list.Select((Pawn p) => p.def).Distinct().ToList())
             {
-                if (raceType.race.gestationPeriodDays > 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)) || ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType)))
+                if (raceType.race.gestationPeriodDays > 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)) || ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)))
                 {
                     return true;
                 }
