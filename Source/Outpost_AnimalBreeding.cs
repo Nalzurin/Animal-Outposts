@@ -40,6 +40,7 @@ namespace AnimalOutposts
 
 
         }
+        public OffSpringAgeTicks() { }
         public OffSpringAgeTicks(float _adultMinAge, float _juvenileMinAge, int _offSpringCount, float speedModifier = 1f)
         {
             juvenileMinAge = _juvenileMinAge;
@@ -82,8 +83,9 @@ namespace AnimalOutposts
     }
     public class AnimalBreedingPair : IExposable
     {
+
+        public Faction faction;
         public string label;
-        public Outpost_AnimalBreeding outpost;
         public ThingDef animalThingDef;
         public Pawn mAnimal;
         public Pawn fAnimal;
@@ -124,19 +126,20 @@ namespace AnimalOutposts
             }
             speedModifier = newSpeedModifier;
         }
-        public AnimalBreedingPair(Pawn _fAnimal, Outpost_AnimalBreeding _outpost, float _speedModifier, string _label, Pawn _mAnimal = null)
+        public AnimalBreedingPair(Faction _faction, Pawn _fAnimal, Outpost_AnimalBreeding _outpost, float _speedModifier, string _label, Pawn _mAnimal = null)
         {
             label = _label;
+            faction = _faction;
             this.animalThingDef = _fAnimal.def;
             this.mAnimal = _mAnimal;
             this.fAnimal = _fAnimal;
             isEggLayer = animalThingDef.HasComp(typeof(CompEggLayer));
             CalculateBirthTicks(_speedModifier);
             currentTicks = birthTicks;
-            this.outpost = _outpost;
             speedModifier = _speedModifier;
             offSpring = new List<OffSpringAgeTicks>();
         }
+        public AnimalBreedingPair() { }
         void CalculateBirthTicks(float modifier)
         {
             birthTicks = (int)((animalThingDef.HasComp(typeof(CompAsexualReproduction)) ? ((float)animalThingDef.GetCompProperties<CompProperties_AsexualReproduction>().reproductionIntervalDays) : (isEggLayer ? animalThingDef.GetCompProperties<CompProperties_EggLayer>().eggLayIntervalDays : animalThingDef.race.gestationPeriodDays)) * 60000f * modifier);
@@ -157,7 +160,7 @@ namespace AnimalOutposts
                 }
                 for (int i = 0; i < off.offSpringCount; i++)
                 {
-                    Pawn pawn = PawnGenerator.GeneratePawn(fAnimal.kindDef, outpost.Faction);
+                    Pawn pawn = PawnGenerator.GeneratePawn(fAnimal.kindDef, faction);
                     //Log.Message("Current ticks " + off.ticks);
                     //Log.Message("Adult ticks " + off.adultTicks);
                     pawn.ageTracker.AgeBiologicalTicks = off.ticks;
@@ -177,11 +180,13 @@ namespace AnimalOutposts
             Scribe_Deep.Look(ref mAnimal, "mAnimal");
             Scribe_Deep.Look(ref fAnimal, "fAnimal");
             Scribe_Defs.Look(ref animalThingDef, "animalThingDef");
+            Scribe_References.Look(ref faction, "faction");
             Scribe_Collections.Look(ref offSpring, "offSpring", LookMode.Deep);
+            Scribe_Values.Look(ref isEggLayer, "isEggLayer", false);
             Scribe_Values.Look(ref birthTicks, "birthTicks", 0);
             Scribe_Values.Look(ref currentTicks, "currentTicks", 0);
             Scribe_Values.Look(ref speedModifier, "speedModifier", 0);
-
+            Scribe_Values.Look(ref label, "label", string.Empty);
         }
     }
     public class Outpost_AnimalBreeding : Outpost
@@ -318,7 +323,7 @@ namespace AnimalOutposts
                 },
                 defaultLabel = "AnimalOutposts.Commands.AddPair.Label".Translate(),
                 defaultDesc = "AnimalOutposts.Commands.AddPair.Desc".Translate(),
-                icon = TexOutposts.RemoveTex
+                icon = Textures.AddPair
             };
             if (animalBreedingPairs.Count >= maxPairs)
             {
@@ -348,7 +353,7 @@ namespace AnimalOutposts
                 },
                 defaultLabel = "AnimalOutposts.Commands.RemovePair.Label".Translate(),
                 defaultDesc = "AnimalOutposts.Commands.RemovePair.Desc".Translate(),
-                icon = TexOutposts.RemoveTex
+                icon = Textures.RemovePair
             };
             if (animalBreedingPairs.Count == 0)
             {
@@ -367,7 +372,7 @@ namespace AnimalOutposts
                 },
                 defaultLabel = "AnimalOutposts.Commands.DeliverJuveniles.Label".Translate(),
                 defaultDesc = "AnimalOutposts.Commands.DeliverJuveniles.Desc".Translate(),
-                icon = TexOutposts.RemoveTex
+                icon = Textures.DeliverJuveniles
             };
             yield return shouldDeliverJuveniles;
 
@@ -387,7 +392,7 @@ namespace AnimalOutposts
                 },
                 defaultLabel = "AnimalOutposts.Commands.DeliverEarly.Label".Translate(),
                 defaultDesc = "AnimalOutposts.Commands.DeliverEarly.Desc".Translate(),
-                icon = TexOutposts.RemoveTex
+                icon = Textures.DeliverEarly
             };
             if (animalBreedingPairs.Count == 0)
             {
@@ -454,7 +459,7 @@ namespace AnimalOutposts
                 animalDefIndexes[female.def] = 1;
 
             }
-            animalBreedingPairs.Add(new AnimalBreedingPair(female, this, birthingGrowingTimeModifier, $"{female.GetKindLabelPlural(2)} {animalDefIndexes[female.def]}", male));
+            animalBreedingPairs.Add(new AnimalBreedingPair(Faction, female, this, birthingGrowingTimeModifier, $"{female.GetKindLabelPlural(2)} {animalDefIndexes[female.def]}", male));
             if (male != null)
             {
                 this.RemovePawn(male);
@@ -506,6 +511,7 @@ namespace AnimalOutposts
         public override void ExposeData()
         {
             base.ExposeData();
+            Scribe_Values.Look(ref deliverJuveniles, "deliverJuveniles", false);
             Scribe_Values.Look(ref previousModifier, "previousModifier", 1f);
             Scribe_Collections.Look(ref animalBreedingPairs, "animalBreedingPairs", LookMode.Deep);
             Scribe_Collections.Look(ref animalDefIndexes, "animalDefIndexes", LookMode.Def, LookMode.Value);

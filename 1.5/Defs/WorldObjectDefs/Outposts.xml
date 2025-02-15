@@ -34,7 +34,7 @@
     <label>animal breeding outpost</label>
     <description>Places a temporary, autonomously-led camp that specializes in livestock handling and gathering their products. Once an ample amount is collected, a delivery will be made at the outskirts of a faction's primary colony.</description>
     <worldObjectClass>AnimalOutposts.Outpost_AnimalBreeding</worldObjectClass>
-    <expandingIconTexture>WorldObjects/OutpostRanch</expandingIconTexture>
+    <expandingIconTexture>WorldObjects/RimworldBreedingOutpost</expandingIconTexture>
     <modExtensions>
       <li Class="Outposts.OutpostExtension_Choose">
         <RequiredSkills>

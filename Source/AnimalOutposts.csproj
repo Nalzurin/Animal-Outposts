@@ -69,6 +69,7 @@
     <Compile Include="Outpost_AnimalTraining.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AnimalOutpostsUtility.cs" />
+    <Compile Include="Textures.cs" />
     <Compile Include="WITab_Outpost_AnimalTraining.cs" />
   </ItemGroup>
   <ItemGroup>
