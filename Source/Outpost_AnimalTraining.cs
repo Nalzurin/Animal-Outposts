@@ -112,12 +112,13 @@ namespace AnimalOutposts
         {
             if (ProducedThings().Count() > 0)
             {
-                Deliver(ProducedThings());
+                
                 List<Thing> things = new List<Thing>(ProducedThings());
                 foreach (Pawn t in things)
                 {
                     RemovePawn(t);
                 }
+                Deliver(things);
             }
         }
         public override IEnumerable<Thing> ProducedThings()
