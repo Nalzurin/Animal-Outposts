@@ -1,0 +1,436 @@
+﻿using AnimalBehaviours;
+using Outposts;
+using RimWorld.Planet;
+using RimWorld;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using UnityEngine;
+using Verse;
+
+namespace AnimalOutposts
+{
+    public class OffSpringAgeTicks : IExposable
+    {
+        public int offSpringCount;
+        public int ticks;
+        public int adultTicks;
+        public bool isAdult;
+        float lifeExpectancy;
+        float adultMinAge;
+        public void Tick()
+        {
+            ticks++;
+            if (ticks >= adultTicks)
+            {
+                isAdult = true;
+            }
+
+        }
+        public OffSpringAgeTicks(float _lifeExpectancy, float _adultMinAge, int _offSpringCount, float speedModifier = 1f)
+        {
+            lifeExpectancy = _lifeExpectancy;
+            adultMinAge = _adultMinAge;
+            offSpringCount = _offSpringCount;
+            ticks = 0;
+            CalculateAdultTicks(speedModifier);
+            //Log.Message(adultTicks);
+            isAdult = false;
+        }
+        public void CalculateAdultTicks(float speedModifier)
+        {
+            adultTicks = (int)(lifeExpectancy * adultMinAge * 3600000 * speedModifier);
+
+        }
+        public void GrowToAdult()
+        {
+            //Log.Message("Becoming adult");
+            //Log.Message("Starting ticks " + ticks);
+            //Log.Message("Adult ticks " + adultTicks);
+            ticks = adultTicks;
+            isAdult = true;
+            //Log.Message("New Ticks " + ticks);
+        }
+        public void ExposeData()
+        {
+            Scribe_Values.Look(ref offSpringCount, "offSpringCount", 0);
+            Scribe_Values.Look(ref ticks, "ticks", 0);
+            Scribe_Values.Look(ref adultTicks, "adultTicks", 0);
+            Scribe_Values.Look(ref isAdult, "isAdult", false);
+            Scribe_Values.Look(ref lifeExpectancy, "lifeExpectancy", 0);
+            Scribe_Values.Look(ref adultMinAge, "adultMinAge", 0);
+        }
+    }
+    public class AnimalBreedingPair : IExposable
+    {
+        public string label;
+        public Outpost_AnimalBreeding outpost;
+        public ThingDef animalThingDef;
+        public Pawn mAnimal;
+        public Pawn fAnimal;
+        public List<OffSpringAgeTicks> offSpring;
+        public bool isEggLayer;
+        public int birthTicks;
+        public int currentTicks;
+        public float speedModifier;
+        public void Tick()
+        {
+            foreach (OffSpringAgeTicks off in offSpring)
+            {
+                off.Tick();
+            }
+            currentTicks--;
+            if (currentTicks > 0)
+            {
+                return;
+            }
+
+            currentTicks = birthTicks;
+            GiveBirth();
+
+        }
+        public void GiveBirth()
+        {
+            int num = (int)(animalThingDef.HasComp(typeof(CompAsexualReproduction)) ? 1f : (isEggLayer ? ((float)Mathf.Min(animalThingDef.GetCompProperties<CompProperties_EggLayer>().eggCountRange.RandomInRange, animalThingDef.GetCompProperties<CompProperties_EggLayer>().eggFertilizationCountMax)) : ((animalThingDef.race.litterSizeCurve != null) ? Rand.ByCurve(animalThingDef.race.litterSizeCurve) : 1f)));
+
+            offSpring.Add(new OffSpringAgeTicks(animalThingDef.race.lifeExpectancy, animalThingDef.race.lifeStageAges.Last().minAge, num, speedModifier));
+        }
+        public void UpdateSpeedModifier(float newSpeedModifier)
+        {
+            CalculateBirthTicks(newSpeedModifier);
+            currentTicks = (int)((currentTicks / speedModifier) * newSpeedModifier);
+            foreach (OffSpringAgeTicks offspring in offSpring)
+            {
+                offspring.CalculateAdultTicks(newSpeedModifier);
+            }
+            speedModifier = newSpeedModifier;
+        }
+        public AnimalBreedingPair(Pawn _fAnimal, Outpost_AnimalBreeding _outpost, float _speedModifier, string _label, Pawn _mAnimal = null)
+        {
+            label = _label;
+            this.animalThingDef = _fAnimal.def;
+            this.mAnimal = _mAnimal;
+            this.fAnimal = _fAnimal;
+            isEggLayer = animalThingDef.HasComp(typeof(CompEggLayer));
+            CalculateBirthTicks(_speedModifier);
+            currentTicks = birthTicks;
+            this.outpost = _outpost;
+            speedModifier = _speedModifier;
+            offSpring = new List<OffSpringAgeTicks>();
+        }
+        void CalculateBirthTicks(float modifier)
+        {
+            birthTicks = (int)((animalThingDef.HasComp(typeof(CompAsexualReproduction)) ? ((float)animalThingDef.GetCompProperties<CompProperties_AsexualReproduction>().reproductionIntervalDays) : (isEggLayer ? animalThingDef.GetCompProperties<CompProperties_EggLayer>().eggLayIntervalDays : animalThingDef.race.gestationPeriodDays)) * 60000f * modifier);
+        }
+
+        public IEnumerable<Pawn> generateOffspring(bool adultOnly)
+        {
+            List<OffSpringAgeTicks> offSprings = new List<OffSpringAgeTicks>(offSpring);
+            foreach (OffSpringAgeTicks off in offSprings)
+            {
+                if (adultOnly && !off.isAdult)
+                {
+                    continue;
+                }
+                for (int i = 0; i < off.offSpringCount; i++)
+                {
+                    Pawn pawn = PawnGenerator.GeneratePawn(fAnimal.kindDef, outpost.Faction);
+                    //Log.Message("Current ticks " + off.ticks);
+                    //Log.Message("Adult ticks " + off.adultTicks);
+                    pawn.ageTracker.AgeBiologicalTicks = off.ticks;
+                    pawn.ageTracker.AgeChronologicalTicks = off.ticks;
+                    pawn.relations.AddDirectRelation(PawnRelationDefOf.ParentBirth, fAnimal);
+                    if (mAnimal != null)
+                    {
+                        pawn.relations.AddDirectRelation(PawnRelationDefOf.Parent, mAnimal);
+                    }
+                    yield return pawn;
+                }
+                offSpring.Remove(off);
+            }
+        }
+        public void ExposeData()
+        {
+            Scribe_Deep.Look(ref mAnimal, "mAnimal");
+            Scribe_Deep.Look(ref fAnimal, "fAnimal");
+            Scribe_Defs.Look(ref animalThingDef, "animalThingDef");
+            Scribe_Collections.Look(ref offSpring, "offSpring", LookMode.Deep);
+            Scribe_Values.Look(ref birthTicks, "birthTicks", 0);
+            Scribe_Values.Look(ref currentTicks, "currentTicks", 0);
+            Scribe_Values.Look(ref speedModifier, "speedModifier", 0);
+
+        }
+    }
+    public class Outpost_AnimalBreeding : Outpost
+    {
+        [PostToSetings("AnimalOutposts.Settings.AnimalSkillPerBreedingPair", PostToSetingsAttribute.DrawMode.IntSlider, 10, 1, 20, null, null)]
+        public int animalSkillPerBreedingPair = 10;
+        [PostToSetings("AnimalOutposts.Settings.BirthingGrowingTimeModifier", PostToSetingsAttribute.DrawMode.Slider, 1f, 0.1f, 10f, null, null)]
+        public float birthingGrowingTimeModifier = 1f;
+
+        private float previousModifier = 1f;
+
+        List<AnimalBreedingPair> animalBreedingPairs = [];
+
+        Dictionary<ThingDef, int> animalDefIndexes = [];
+
+        int maxPairs => this.TotalSkill(Ext.RequiredSkills.First().Skill) / animalSkillPerBreedingPair;
+
+        public override void Tick()
+        {
+            base.Tick();
+            if(previousModifier != birthingGrowingTimeModifier)
+            {
+                UpdateMultiplier();
+            }
+            foreach (AnimalBreedingPair pair in animalBreedingPairs)
+            {
+                pair.Tick();
+            }
+        }
+
+        public override string ProductionString()
+        {
+            StringBuilder sb = new StringBuilder("AnimalOutposts.ProductionString.PairLimit".Translate(animalBreedingPairs.Count, maxPairs));
+            if (!animalBreedingPairs.Empty())
+            {
+                sb.Append("\n" + "AnimalOutposts.ProductionString.BreedingPairs".Translate());
+                foreach (AnimalBreedingPair pair in animalBreedingPairs)
+                {
+                    sb.Append("\n- " + pair.label);
+                    int adults = 0;
+                    int children = 0;
+                    int newBirthTicks = pair.currentTicks;
+                    int newAdultTicks = int.MaxValue;
+                    foreach (OffSpringAgeTicks off in pair.offSpring)
+                    {
+                        if(off.adultTicks - off.ticks < newAdultTicks)
+                        {
+                            newAdultTicks = off.adultTicks - off.ticks;
+                        }
+                        if (off.isAdult)
+                        {
+                            adults += off.offSpringCount;
+                        }
+                        else
+                        {
+                            children += off.offSpringCount;
+                        }
+                    }
+                    sb.Append("\n  " + "AnimalOutposts.ProductionString.Adults".Translate(adults));
+                    sb.Append("\n  " + "AnimalOutposts.ProductionString.Children".Translate(children));
+                    sb.Append("\n  " + "AnimalOutposts.ProductionString.NewBirthIn".Translate(newBirthTicks.ToStringTicksToPeriodVerbose()));
+                    if (!pair.offSpring.Where(c=> !c.isAdult).Any())
+                    {
+                        sb.Append("\n  " + "AnimalOutposts.ProductionString.NewAdultIn".Translate(newAdultTicks.ToStringTicksToPeriodVerbose()));
+
+                    }
+
+                }
+
+            }
+            else
+            {
+                sb.Append("\n" + "AnimalOutposts.ProductionString.NoPairsNotProducing".Translate());
+            }
+            return sb.ToString();
+        }
+        public override void Produce()
+        {
+            if (ShouldProduce())
+            {
+                Deliver(ProducedThings());
+            }
+        }
+        public bool ShouldProduce()
+        {
+            foreach (AnimalBreedingPair pair in animalBreedingPairs)
+            {
+                if (pair.offSpring.Any(c => c.isAdult))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public override IEnumerable<Thing> ProducedThings()
+        {
+            foreach (AnimalBreedingPair pair in animalBreedingPairs)
+            {
+                foreach (Pawn pawn in pair.generateOffspring(true))
+                {
+                    yield return pawn;
+                }
+            }
+        }
+
+        public override IEnumerable<Gizmo> GetGizmos()
+        {
+            foreach (Gizmo gizmo in base.GetGizmos())
+            {
+                yield return gizmo;
+            }
+            Command_Action addPair = new Command_Action
+            {
+                action = delegate
+                {
+                    Find.WindowStack.Add(new FloatMenu(GetAllAnimalPairsOptions(AllPawns.ToList()).ToList()));
+                },
+                defaultLabel = "AnimalOutposts.Commands.AddPair.Label".Translate(),
+                defaultDesc = "AnimalOutposts.Commands.AddPair.Desc".Translate(),
+                icon = TexOutposts.RemoveTex
+            };
+            if (animalBreedingPairs.Count >= maxPairs)
+            {
+                addPair.Disabled = true;
+                addPair.disabledReason = "AnimalOutposts.Command.AddPair.MaxPairsReached".Translate();
+            }
+            if (!AnyAnimalPairs(AllPawns.ToList()))
+            {
+                addPair.Disabled = true;
+                addPair.disabledReason = "AnimalOutposts.Command.AddPair.NoPairs".Translate();
+            }
+            yield return addPair;
+
+            Command_Action removePair = new Command_Action
+            {
+                action = delegate
+                {
+                    Find.WindowStack.Add(new FloatMenu(animalBreedingPairs.Select(c => new FloatMenuOption(c.label, delegate
+                    {
+                        RemovePair(c);
+                    })).ToList()));
+                },
+                defaultLabel = "AnimalOutposts.Commands.RemovePair.Label".Translate(),
+                defaultDesc = "AnimalOutposts.Commands.RemovePair.Desc".Translate(),
+                icon = TexOutposts.RemoveTex
+            };
+            if (animalBreedingPairs.Count == 0)
+            {
+                removePair.Disabled = true;
+                removePair.disabledReason = "AnimalOutposts.Command.AddPair.NoActivePairs".Translate();
+            }
+            yield return removePair;
+
+
+
+            if (Prefs.DevMode)
+            {
+                yield return new Command_Action
+                {
+                    action = delegate
+                    {
+                        foreach (AnimalBreedingPair pair in animalBreedingPairs)
+                        {
+                            pair.currentTicks = 10;
+                        }
+                    },
+                    defaultLabel = "Dev: Birth now",
+                    defaultDesc = "Reduce ticksTillBirth to 10"
+                };
+                yield return new Command_Action
+                {
+                    action = delegate
+                    {
+                        foreach (AnimalBreedingPair pair in animalBreedingPairs)
+                        {
+                            foreach (OffSpringAgeTicks tick in pair.offSpring)
+                            {
+                                tick.GrowToAdult();
+                            }
+                        }
+                    },
+                    defaultLabel = "Dev: Grow to adult",
+                    defaultDesc = "Grow all offspring to adult age"
+                };
+            }
+        }
+
+        public void RemovePair(AnimalBreedingPair pair)
+        {
+            if (pair.mAnimal != null)
+            {
+                AddPawn(pair.mAnimal);
+            }
+            AddPawn(pair.fAnimal);
+            foreach (Pawn p in pair.generateOffspring(false))
+            {
+                AddPawn(p);
+            }
+            animalBreedingPairs.Remove(pair);
+        }
+
+        public void AddPair(Pawn female, Pawn male = null)
+        {
+            if (animalDefIndexes.ContainsKey(female.def))
+            {
+                animalDefIndexes[female.def] += 1;
+            }
+            else
+            {
+                animalDefIndexes[female.def] = 1;
+
+            }
+            animalBreedingPairs.Add(new AnimalBreedingPair(female, this, birthingGrowingTimeModifier, $"{female.GetKindLabelPlural(2)} {animalDefIndexes[female.def]}", male));
+            if (male != null)
+            {
+                this.RemovePawn(male);
+            }
+            this.RemovePawn(female);
+
+        }
+        public void UpdateMultiplier()
+        {
+            foreach(AnimalBreedingPair pair in animalBreedingPairs)
+            {
+                pair.UpdateSpeedModifier(birthingGrowingTimeModifier);
+            }
+            previousModifier = birthingGrowingTimeModifier;
+        }
+        public IEnumerable<FloatMenuOption> GetAllAnimalPairsOptions(List<Pawn> pawns)
+        {
+            List<Pawn> list = pawns.Where((Pawn p) => p.RaceProps.Animal).ToList();
+            foreach (ThingDef raceType in list.Select((Pawn p) => p.def).Distinct().ToList())
+            {
+                if (raceType.race.gestationPeriodDays <= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)))
+                {
+                    yield return new FloatMenuOption(raceType.LabelCap, delegate
+                    {
+                        AddPair(list.Where(p => p.def == raceType && p.gender == Gender.Female).RandomElement(), list.Where(p => p.def == raceType && p.gender == Gender.Male).RandomElement());
+                    });
+                }
+                if ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType))
+                {
+                    yield return new FloatMenuOption(raceType.LabelCap, delegate
+                    {
+                        AddPair(list.Where(p => p.def == raceType).RandomElement());
+                    });
+                }
+            }
+        }
+        public static bool AnyAnimalPairs(List<Pawn> pawns)
+        {
+            List<Pawn> list = pawns.Where((Pawn p) => p.RaceProps.Animal).ToList();
+            foreach (ThingDef raceType in list.Select((Pawn p) => p.def).Distinct().ToList())
+            {
+                if (raceType.race.gestationPeriodDays <= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)) || ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            Scribe_Values.Look(ref previousModifier, "previousModifier", 1f);
+            Scribe_Collections.Look(ref animalBreedingPairs, "animalBreedingPairs", LookMode.Deep);
+            Scribe_Collections.Look(ref animalDefIndexes, "animalDefIndexes", LookMode.Def, LookMode.Value);
+
+        }
+
+
+    }
+}

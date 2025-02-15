@@ -5,4 +5,20 @@
   <AnimalOutposts.NoTrainedAnimalsToDeliver>No sufficiently trained animals to deliver</AnimalOutposts.NoTrainedAnimalsToDeliver>
   <Outposts.Settings.TrainingInterval>Animal Training Interval</Outposts.Settings.TrainingInterval>
   <Outposts.Settings.SkillAmountPerAnimal>Animal skill required to train 1 animal (e.g. with 24 total skill, train 3 animals per interval)</Outposts.Settings.SkillAmountPerAnimal>
+  <AnimalOutposts.ProductionString.Adults>Adults: {0}</AnimalOutposts.ProductionString.Adults>
+  <AnimalOutposts.ProductionString.Children>Children: {0}</AnimalOutposts.ProductionString.Children>
+  <AnimalOutposts.ProductionString.BreedingPairs>Pairs:</AnimalOutposts.ProductionString.BreedingPairs>
+  <AnimalOutposts.Settings.AnimalSkillPerBreedingPair>Animal skill per breeding pair</AnimalOutposts.Settings.AnimalSkillPerBreedingPair>
+  <AnimalOutposts.Settings.BirthingGrowingTimeModifier>Birth and growing speed modifier</AnimalOutposts.Settings.BirthingGrowingTimeModifier>
+  <AnimalOutposts.Commands.AddPair.Label>Add new pair</AnimalOutposts.Commands.AddPair.Label>
+  <AnimalOutposts.Commands.AddPair.Desc>Add a new breeding pair to produce offspring</AnimalOutposts.Commands.AddPair.Desc>
+  <AnimalOutposts.Command.AddPair.MaxPairsReached>Pair limit reached</AnimalOutposts.Command.AddPair.MaxPairsReached>
+  <AnimalOutposts.Command.AddPair.NoPairs>No pairs available</AnimalOutposts.Command.AddPair.NoPairs>
+  <AnimalOutposts.Commands.RemovePair.Label>Remove pair</AnimalOutposts.Commands.RemovePair.Label>
+  <AnimalOutposts.Commands.RemovePair.Desc>Remove a breeding pair, returning them and living offspring to the outpost pawns</AnimalOutposts.Commands.RemovePair.Desc>
+  <AnimalOutposts.Command.AddPair.NoActivePairs>No active pairs</AnimalOutposts.Command.AddPair.NoActivePairs>
+  <AnimalOutposts.ProductionString.PairLimit>Current Pairs: {0}/{1}</AnimalOutposts.ProductionString.PairLimit>
+  <AnimalOutposts.ProductionString.NoPairsNotProducing>No active pairs, not producing</AnimalOutposts.ProductionString.NoPairsNotProducing>
+  <AnimalOutposts.ProductionString.NewBirthIn>New birth in {0}</AnimalOutposts.ProductionString.NewBirthIn>
+  <AnimalOutposts.ProductionString.NewAdultIn>New adult in {0}</AnimalOutposts.ProductionString.NewAdultIn>
 </LanguageData>
