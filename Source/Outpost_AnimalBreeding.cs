@@ -17,32 +17,46 @@ namespace AnimalOutposts
         public int offSpringCount;
         public int ticks;
         public int adultTicks;
+        public int juvenileTicks;
+        public bool isJuvenile;
         public bool isAdult;
-        float lifeExpectancy;
+        public bool isChild;
         float adultMinAge;
+        float juvenileMinAge;
         public void Tick()
         {
             ticks++;
+            if (ticks >= juvenileTicks && !isAdult)
+            {
+                isJuvenile = true;
+                isChild = false;
+            }
             if (ticks >= adultTicks)
             {
                 isAdult = true;
+                isJuvenile = false;
+                isChild = false;
             }
 
+
         }
-        public OffSpringAgeTicks(float _lifeExpectancy, float _adultMinAge, int _offSpringCount, float speedModifier = 1f)
+        public OffSpringAgeTicks(float _adultMinAge, float _juvenileMinAge, int _offSpringCount, float speedModifier = 1f)
         {
-            lifeExpectancy = _lifeExpectancy;
+            juvenileMinAge = _juvenileMinAge;
             adultMinAge = _adultMinAge;
             offSpringCount = _offSpringCount;
             ticks = 0;
-            CalculateAdultTicks(speedModifier);
+            CalculateTicks(speedModifier);
             //Log.Message(adultTicks);
             isAdult = false;
+            isJuvenile = false;
+            isChild = true;
         }
-        public void CalculateAdultTicks(float speedModifier)
-        {
-            adultTicks = (int)(lifeExpectancy * adultMinAge * 3600000 * speedModifier);
 
+        public void CalculateTicks(float speedModifier)
+        {
+            adultTicks = (int)(adultMinAge * 3600000 * speedModifier);
+            juvenileTicks = (int)(juvenileMinAge * 3600000 * speedModifier);
         }
         public void GrowToAdult()
         {
@@ -59,8 +73,11 @@ namespace AnimalOutposts
             Scribe_Values.Look(ref ticks, "ticks", 0);
             Scribe_Values.Look(ref adultTicks, "adultTicks", 0);
             Scribe_Values.Look(ref isAdult, "isAdult", false);
-            Scribe_Values.Look(ref lifeExpectancy, "lifeExpectancy", 0);
             Scribe_Values.Look(ref adultMinAge, "adultMinAge", 0);
+            Scribe_Values.Look(ref juvenileTicks, "juvenileTicks", 0);
+            Scribe_Values.Look(ref isJuvenile, "isJuvenile", false);
+            Scribe_Values.Look(ref juvenileMinAge, "juvenileMinAge", 0);
+            Scribe_Values.Look(ref isChild, "isChild", true);
         }
     }
     public class AnimalBreedingPair : IExposable
@@ -95,7 +112,7 @@ namespace AnimalOutposts
         {
             int num = (int)(animalThingDef.HasComp(typeof(CompAsexualReproduction)) ? 1f : (isEggLayer ? ((float)Mathf.Min(animalThingDef.GetCompProperties<CompProperties_EggLayer>().eggCountRange.RandomInRange, animalThingDef.GetCompProperties<CompProperties_EggLayer>().eggFertilizationCountMax)) : ((animalThingDef.race.litterSizeCurve != null) ? Rand.ByCurve(animalThingDef.race.litterSizeCurve) : 1f)));
 
-            offSpring.Add(new OffSpringAgeTicks(animalThingDef.race.lifeExpectancy, animalThingDef.race.lifeStageAges.Last().minAge, num, speedModifier));
+            offSpring.Add(new OffSpringAgeTicks(animalThingDef.race.lifeStageAges[1].minAge, animalThingDef.race.lifeStageAges[2].minAge, num, speedModifier));
         }
         public void UpdateSpeedModifier(float newSpeedModifier)
         {
@@ -103,7 +120,7 @@ namespace AnimalOutposts
             currentTicks = (int)((currentTicks / speedModifier) * newSpeedModifier);
             foreach (OffSpringAgeTicks offspring in offSpring)
             {
-                offspring.CalculateAdultTicks(newSpeedModifier);
+                offspring.CalculateTicks(newSpeedModifier);
             }
             speedModifier = newSpeedModifier;
         }
@@ -125,12 +142,16 @@ namespace AnimalOutposts
             birthTicks = (int)((animalThingDef.HasComp(typeof(CompAsexualReproduction)) ? ((float)animalThingDef.GetCompProperties<CompProperties_AsexualReproduction>().reproductionIntervalDays) : (isEggLayer ? animalThingDef.GetCompProperties<CompProperties_EggLayer>().eggLayIntervalDays : animalThingDef.race.gestationPeriodDays)) * 60000f * modifier);
         }
 
-        public IEnumerable<Pawn> generateOffspring(bool adultOnly)
+        public IEnumerable<Pawn> generateOffspring(bool doChildren, bool doJuveniles)
         {
             List<OffSpringAgeTicks> offSprings = new List<OffSpringAgeTicks>(offSpring);
             foreach (OffSpringAgeTicks off in offSprings)
             {
-                if (adultOnly && !off.isAdult)
+                if (off.isChild && !doChildren)
+                {
+                    continue;
+                }
+                if (off.isJuvenile && !doJuveniles)
                 {
                     continue;
                 }
@@ -172,6 +193,8 @@ namespace AnimalOutposts
 
         private float previousModifier = 1f;
 
+        private bool deliverJuveniles = false;
+
         List<AnimalBreedingPair> animalBreedingPairs = [];
 
         Dictionary<ThingDef, int> animalDefIndexes = [];
@@ -181,14 +204,14 @@ namespace AnimalOutposts
         public override void Tick()
         {
             base.Tick();
-            if(Packing && !animalBreedingPairs.Empty())
+            if (Packing && !animalBreedingPairs.Empty())
             {
                 foreach (AnimalBreedingPair pair in animalBreedingPairs)
                 {
                     RemovePair(pair);
                 }
             }
-            if(previousModifier != birthingGrowingTimeModifier)
+            if (previousModifier != birthingGrowingTimeModifier)
             {
                 UpdateMultiplier();
             }
@@ -210,11 +233,12 @@ namespace AnimalOutposts
                     sb.Append("\n- " + pair.label);
                     int adults = 0;
                     int children = 0;
+                    int juveniles = 0;
                     int newBirthTicks = pair.currentTicks;
                     int newAdultTicks = int.MaxValue;
                     foreach (OffSpringAgeTicks off in pair.offSpring)
                     {
-                        if(off.adultTicks - off.ticks < newAdultTicks)
+                        if (off.adultTicks - off.ticks < newAdultTicks)
                         {
                             newAdultTicks = off.adultTicks - off.ticks;
                         }
@@ -222,15 +246,20 @@ namespace AnimalOutposts
                         {
                             adults += off.offSpringCount;
                         }
+                        else if (off.isJuvenile)
+                        {
+                            juveniles += off.offSpringCount;
+                        }
                         else
                         {
                             children += off.offSpringCount;
                         }
                     }
                     sb.Append("\n  " + "AnimalOutposts.ProductionString.Adults".Translate(adults));
+                    sb.Append("\n  " + "AnimalOutposts.ProductionString.Juveniles".Translate(juveniles));
                     sb.Append("\n  " + "AnimalOutposts.ProductionString.Children".Translate(children));
                     sb.Append("\n  " + "AnimalOutposts.ProductionString.NewBirthIn".Translate(newBirthTicks.ToStringTicksToPeriodVerbose()));
-                    if (pair.offSpring.Where(c=> !c.isAdult).Any())
+                    if (pair.offSpring.Where(c => !c.isAdult).Any())
                     {
                         sb.Append("\n  " + "AnimalOutposts.ProductionString.NewAdultIn".Translate(newAdultTicks.ToStringTicksToPeriodVerbose()));
 
@@ -256,7 +285,7 @@ namespace AnimalOutposts
         {
             foreach (AnimalBreedingPair pair in animalBreedingPairs)
             {
-                if (pair.offSpring.Any(c => c.isAdult))
+                if (pair.offSpring.Any(c => c.isAdult || (deliverJuveniles && c.isJuvenile)))
                 {
                     return true;
                 }
@@ -267,7 +296,7 @@ namespace AnimalOutposts
         {
             foreach (AnimalBreedingPair pair in animalBreedingPairs)
             {
-                foreach (Pawn pawn in pair.generateOffspring(true))
+                foreach (Pawn pawn in pair.generateOffspring(false, deliverJuveniles))
                 {
                     yield return pawn;
                 }
@@ -328,6 +357,44 @@ namespace AnimalOutposts
             yield return removePair;
 
 
+            Command_Toggle shouldDeliverJuveniles = new Command_Toggle
+            {
+                isActive = () => deliverJuveniles,
+                toggleAction = delegate
+                {
+                    deliverJuveniles = !deliverJuveniles;
+                },
+                defaultLabel = "AnimalOutposts.Commands.DeliverJuveniles.Label".Translate(),
+                defaultDesc = "AnimalOutposts.Commands.DeliverJuveniles.Desc".Translate(),
+                icon = TexOutposts.RemoveTex
+            };
+            yield return shouldDeliverJuveniles;
+
+            Command_Action deliverEarly = new Command_Action
+            {
+                action = delegate
+                {
+                    List<Pawn> offspring = [];
+                    foreach (AnimalBreedingPair pair in animalBreedingPairs)
+                    {
+                        foreach (Pawn pawn in pair.generateOffspring(true, true))
+                        {
+                            offspring.Add(pawn);
+                        }
+                    }
+                    Deliver(offspring);
+                },
+                defaultLabel = "AnimalOutposts.Commands.DeliverEarly.Label".Translate(),
+                defaultDesc = "AnimalOutposts.Commands.DeliverEarly.Desc".Translate(),
+                icon = TexOutposts.RemoveTex
+            };
+            if (animalBreedingPairs.Count == 0)
+            {
+                removePair.Disabled = true;
+                removePair.disabledReason = "AnimalOutposts.Command.AddPair.NoActivePairs".Translate();
+            }
+            yield return deliverEarly;
+
 
             if (Prefs.DevMode)
             {
@@ -368,7 +435,7 @@ namespace AnimalOutposts
                 AddPawn(pair.mAnimal);
             }
             AddPawn(pair.fAnimal);
-            foreach (Pawn p in pair.generateOffspring(false))
+            foreach (Pawn p in pair.generateOffspring(true, true))
             {
                 AddPawn(p);
             }
@@ -396,7 +463,7 @@ namespace AnimalOutposts
         }
         public void UpdateMultiplier()
         {
-            foreach(AnimalBreedingPair pair in animalBreedingPairs)
+            foreach (AnimalBreedingPair pair in animalBreedingPairs)
             {
                 pair.UpdateSpeedModifier(birthingGrowingTimeModifier);
             }
@@ -404,10 +471,10 @@ namespace AnimalOutposts
         }
         public IEnumerable<FloatMenuOption> GetAllAnimalPairsOptions(List<Pawn> pawns)
         {
-            List<Pawn> list = pawns.Where((Pawn p) => p.RaceProps.Animal).ToList();
+            List<Pawn> list = pawns.Where((Pawn p) => p.IsNonMutantAnimal).ToList();
             foreach (ThingDef raceType in list.Select((Pawn p) => p.def).Distinct().ToList())
             {
-                if (raceType.race.gestationPeriodDays >= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)))
+                if (raceType.race.gestationPeriodDays > 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)))
                 {
                     yield return new FloatMenuOption(raceType.LabelCap, delegate
                     {
@@ -425,10 +492,10 @@ namespace AnimalOutposts
         }
         public static bool AnyAnimalPairs(List<Pawn> pawns)
         {
-            List<Pawn> list = pawns.Where((Pawn p) => p.RaceProps.Animal).ToList();
+            List<Pawn> list = pawns.Where((Pawn p) => p.IsNonMutantAnimal).ToList();
             foreach (ThingDef raceType in list.Select((Pawn p) => p.def).Distinct().ToList())
             {
-                if (raceType.race.gestationPeriodDays >= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)) || ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType)))
+                if (raceType.race.gestationPeriodDays > 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)) || ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType)))
                 {
                     return true;
                 }

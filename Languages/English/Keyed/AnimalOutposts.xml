@@ -6,6 +6,7 @@
   <Outposts.Settings.TrainingInterval>Animal Training Interval</Outposts.Settings.TrainingInterval>
   <Outposts.Settings.SkillAmountPerAnimal>Animal skill required to train 1 animal (e.g. with 24 total skill, train 3 animals per interval)</Outposts.Settings.SkillAmountPerAnimal>
   <AnimalOutposts.ProductionString.Adults>Adults: {0}</AnimalOutposts.ProductionString.Adults>
+  <AnimalOutposts.ProductionString.Juveniles>Juveniles: {0}</AnimalOutposts.ProductionString.Juveniles>
   <AnimalOutposts.ProductionString.Children>Children: {0}</AnimalOutposts.ProductionString.Children>
   <AnimalOutposts.ProductionString.BreedingPairs>Pairs:</AnimalOutposts.ProductionString.BreedingPairs>
   <AnimalOutposts.Settings.AnimalSkillPerBreedingPair>Animal skill per breeding pair</AnimalOutposts.Settings.AnimalSkillPerBreedingPair>
@@ -22,4 +23,9 @@
   <AnimalOutposts.ProductionString.NoPairsNotProducing>No active pairs, not producing</AnimalOutposts.ProductionString.NoPairsNotProducing>
   <AnimalOutposts.ProductionString.NewBirthIn>New birth in {0}</AnimalOutposts.ProductionString.NewBirthIn>
   <AnimalOutposts.ProductionString.NewAdultIn>New adult in {0}</AnimalOutposts.ProductionString.NewAdultIn>
+  <AnimalOutposts.Commands.DeliverJuveniles.Label>Deliver juveniles</AnimalOutposts.Commands.DeliverJuveniles.Label>
+  <AnimalOutposts.Commands.DeliverJuveniles.Desc>Should deliver juveniles with adults</AnimalOutposts.Commands.DeliverJuveniles.Desc>
+  <AnimalOutposts.Commands.DeliverEarly.Label>Deliver early</AnimalOutposts.Commands.DeliverEarly.Label>
+  <AnimalOutposts.Commands.DeliverEarly.Desc>Deliver all offspring early</AnimalOutposts.Commands.DeliverEarly.Desc>
+
 </LanguageData>
