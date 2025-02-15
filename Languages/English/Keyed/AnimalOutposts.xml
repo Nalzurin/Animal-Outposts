@@ -14,6 +14,7 @@
   <AnimalOutposts.Commands.AddPair.Desc>Add a new breeding pair to produce offspring</AnimalOutposts.Commands.AddPair.Desc>
   <AnimalOutposts.Command.AddPair.MaxPairsReached>Pair limit reached</AnimalOutposts.Command.AddPair.MaxPairsReached>
   <AnimalOutposts.Command.AddPair.NoPairs>No pairs available</AnimalOutposts.Command.AddPair.NoPairs>
+  <AnimalOutposts.Command.AddPair.Packing>Currently packing</AnimalOutposts.Command.AddPair.Packing>
   <AnimalOutposts.Commands.RemovePair.Label>Remove pair</AnimalOutposts.Commands.RemovePair.Label>
   <AnimalOutposts.Commands.RemovePair.Desc>Remove a breeding pair, returning them and living offspring to the outpost pawns</AnimalOutposts.Commands.RemovePair.Desc>
   <AnimalOutposts.Command.AddPair.NoActivePairs>No active pairs</AnimalOutposts.Command.AddPair.NoActivePairs>

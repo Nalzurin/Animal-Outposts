@@ -181,6 +181,13 @@ namespace AnimalOutposts
         public override void Tick()
         {
             base.Tick();
+            if(Packing && !animalBreedingPairs.Empty())
+            {
+                foreach (AnimalBreedingPair pair in animalBreedingPairs)
+                {
+                    RemovePair(pair);
+                }
+            }
             if(previousModifier != birthingGrowingTimeModifier)
             {
                 UpdateMultiplier();
@@ -190,6 +197,7 @@ namespace AnimalOutposts
                 pair.Tick();
             }
         }
+
 
         public override string ProductionString()
         {
@@ -222,7 +230,7 @@ namespace AnimalOutposts
                     sb.Append("\n  " + "AnimalOutposts.ProductionString.Adults".Translate(adults));
                     sb.Append("\n  " + "AnimalOutposts.ProductionString.Children".Translate(children));
                     sb.Append("\n  " + "AnimalOutposts.ProductionString.NewBirthIn".Translate(newBirthTicks.ToStringTicksToPeriodVerbose()));
-                    if (!pair.offSpring.Where(c=> !c.isAdult).Any())
+                    if (pair.offSpring.Where(c=> !c.isAdult).Any())
                     {
                         sb.Append("\n  " + "AnimalOutposts.ProductionString.NewAdultIn".Translate(newAdultTicks.ToStringTicksToPeriodVerbose()));
 
@@ -291,6 +299,11 @@ namespace AnimalOutposts
             {
                 addPair.Disabled = true;
                 addPair.disabledReason = "AnimalOutposts.Command.AddPair.NoPairs".Translate();
+            }
+            if (Packing)
+            {
+                addPair.Disabled = true;
+                addPair.disabledReason = "AnimalOutposts.Command.AddPair.Packing".Translate();
             }
             yield return addPair;
 
@@ -394,7 +407,7 @@ namespace AnimalOutposts
             List<Pawn> list = pawns.Where((Pawn p) => p.RaceProps.Animal).ToList();
             foreach (ThingDef raceType in list.Select((Pawn p) => p.def).Distinct().ToList())
             {
-                if (raceType.race.gestationPeriodDays <= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)))
+                if (raceType.race.gestationPeriodDays >= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)))
                 {
                     yield return new FloatMenuOption(raceType.LabelCap, delegate
                     {
@@ -415,7 +428,7 @@ namespace AnimalOutposts
             List<Pawn> list = pawns.Where((Pawn p) => p.RaceProps.Animal).ToList();
             foreach (ThingDef raceType in list.Select((Pawn p) => p.def).Distinct().ToList())
             {
-                if (raceType.race.gestationPeriodDays <= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)) || ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType)))
+                if (raceType.race.gestationPeriodDays >= 0 && (raceType.race.hasGenders && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Female && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex) && list.Any((Pawn p) => p.def == raceType && p.gender == Gender.Male && p.ageTracker.CurLifeStageIndex == p.ageTracker.MaxRaceLifeStageIndex)) || ((!raceType.race.hasGenders || raceType.HasComp(typeof(CompAsexualReproduction))) && list.Any((Pawn p) => p.def == raceType)))
                 {
                     return true;
                 }
