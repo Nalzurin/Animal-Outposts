@@ -6,6 +6,7 @@
    	<packageId>nalzurin.animaloutposts</packageId>
   <supportedVersions>
     <li>1.5</li>
+    <li>1.6</li>
   </supportedVersions>
   <description>Adds two new outposts for training and breeding animals.</description>
 	<modDependencies>
